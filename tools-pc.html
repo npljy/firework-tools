@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>切图工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
+        html,
+        body {
+            text-align: center;
+        }
+        
+        .main {
+            position: fixed;
+            z-index: 10;
+            width: 100%;
+            text-align: center;
+            border-bottom: 1px solid #0700c5;
+            background: #f5f5f5;
+            height: 50px;
+            /* opacity: 0.7; */
+        }
+        
+        .img-div,
+        .code-div {
+            position: relative;
+            top: 30px;
+            margin: 0 auto;
+        }
+        
+        .code-div {
+            width: 100%;
+            display: none;
+            position: relative;
+            max-height: 1px;
+            opacity: 0.01;
+            overflow: hidden;
+            position: absolute;
+            top: 0;
+        }
+        
+        #code-text {
+            resize: none;
+        }
+        
+        .div-class {
+            position: absolute;
+            border: 1px solid skyblue;
+            background: #000;
+            opacity: 0.5;
+            box-sizing: border-box;
+        }
+        
+        .link-div {
+            position: absolute;
+            display: none;
+        }
+        
+        .out-box {
+            width: 100%;
+            padding-top: 60px;
+            background: #f5f5f5;
+        }
+        
+        #output {
+            font-size: 20px;
+            position: absolute;
+        }
+        
+        #img {
+            display: none;
+        }
+        
+        .ipt {
+            position: absolute;
+            font-size: 20px;
+            vertical-align: middle;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            border: none;
+            outline: none;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+            height: 30px;
+            color: #0700c5;
+            border: 1px solid #000;
+            background: #fff;
+        }
+        
+        #ipt {
+            z-index: 20;
+            opacity: 0.01;
+        }
+        
+        #output {
+            position: absolute;
+            left: 200px;
+            top: 50%;
+            width: 100px;
+            height: 30px;
+            transform: translateY(-50%);
+            color: #0700c5;
+            border: 1px solid #000;
+            background: #fff;
+        }
+        
+        .mask {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            opacity: 0.01;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main">
+        <input id="ipt" class="ipt" type="file">
+        <button class="ipt">导入图片</button>
+        <button id="output">去粘贴</button>
+        <div class="code-div">
+            <div class="mask"></div>
+            <textarea name="" id="code-text" cols="120" rows="30" style="color:#000"></textarea>
+        </div>
+    </div>
+    <div class="out-box">
+        <div class="img-div">
+            <img id="img" alt="">
+        </div>
+    </div>
+    <!--  -->
+    <script>
+        // var fd = new FileReader();
+        var {
+            log,
+            dir
+        } = console;
+        var npout = document.getElementById("output");
+        var npfileName = document.getElementById("ipt");
+        var npcodeDiv = document.querySelector(".code-div")
+        var npcodeText = document.getElementById("code-text");
+        var npimg = document.getElementById("img");
+        var npoutBox = document.querySelector(".out-box");
+        var npimgDiv = document.querySelector(".img-div");
+        var npaDivs = npimgDiv.getElementsByTagName("div");
+        var nphrefBox = document.querySelector(".href_box");
+        var nprandNum = 0;
+        var nplinkNum = 0;
+        var npimgW = 0;
+        var npimgH = 0;
+        var npcodeStr = "";
+        var npfile = '';
+        var npappUrl = ""; //跳转APP页面的url
+        var npimgUrl = ""; //输入的img url
+        var npimgBoxWidth = 0;
+
+        npfileName.onchange = function(ef) {
+            npfile = this.files[0];
+            var npaDivs = Array.from(npimgDiv.querySelectorAll("div"));
+            if (!npfile) return;
+            if (window.FileReader) {
+                var npreader = new FileReader();
+                npreader.readAsDataURL(npfile);
+                //监听文件读取结束后事件    
+                npreader.onloadend = function(er) {
+                    // log(e.target); //e.target.result就是最后的路径地址
+                    nprandNum = +new Date();
+                    npcodeText.value = "";
+                    npcodeStr = "";
+                    npaDivs.forEach(e => e.remove());
+                    isNull(er);
+                    npcodeDiv.style.display = "block";
+                    outCode();
+                };
+            }
+
+            function isNull(er) {
+                npappUrl = prompt(" 如没有对应APP页面，点“确定”直接跳过。\n 如有，务必先完成APP页面，然后填入对应的APP页面地址。\n", "");
+                npappUrl = npappUrl.replace(/(^\s*)|(\s*$)/g, "");
+                if (!npappUrl) npappUrl = "";
+                npimg.style.display = "block"
+                npimg.src = er.target.result;
+                let nptmpImg = new Image();
+                nptmpImg.src = er.target.result; //获取编码后的值,也可以用this.result获取
+                nptmpImg.onload = function() {
+                    npimgW = this.width;
+                    npimgH = this.height;
+                    npimgDiv.style.width = npimgW + "px";
+                    npimgDiv.style.height = npimgH + "px";
+                    npoutBox.style.height = npimgH + 80 + "px";
+                }
+                nptmpImg.remove();
+            }
+        }
+
+        npimgDiv.onmousedown = function(es) {
+            var npcodeNum = +new Date();
+            if (!npimg.src) return;
+            var npmdiv = document.createElement("div");
+            npmdiv.className = "div-class";
+            var npsx = es.pageX - npimgDiv.offsetLeft;
+            var npsy = es.pageY - npimgDiv.offsetTop;
+
+            if (es.button == 0) {
+                document.onmousemove = function(em) {
+                    var npdx = em.pageX - npimgDiv.offsetLeft;
+                    var npdy = em.pageY - npimgDiv.offsetTop;
+                    npdx > npimgDiv.offsetWidth && (npdx = npimgDiv.offsetWidth);
+                    npdy > npimgDiv.offsetHeight && (npdy = npimgDiv.offsetHeight);
+                    npdx < 0 && (npdx = 0);
+                    npdy < 0 && (npdy = 0);
+                    npmdiv.style.width = Math.abs(npdx - npsx) + "px";
+                    npmdiv.style.height = Math.abs(npdy - npsy) + "px";
+                    npmdiv.style.left = minNum(npsx, npdx) + "px";
+                    npmdiv.style.top = minNum(npsy, npdy) + "px";
+                    npimgDiv.appendChild(npmdiv);
+
+                    document.onmouseup = function(eu) {
+                        var npux = eu.pageX;
+                        var npuy = eu.pageY;
+                        var nplinkStr = prompt("PC页面：请输入选中区域的链接地址", "")
+                        nplinkStr && (nplinkStr = nplinkStr.replace(/(^\s*)|(\s*$)/g, ""));
+                        if (nplinkStr) {
+                            npmdiv.setAttribute("title", nplinkStr);
+                            for (var i = 0; i < npaDivs.length; i++) {
+                                npaDivs[i].dataset.index = i + 1;
+                            }
+                            var nptopNum = (minNum(npsy, npdy) / npimg.height * 100).toFixed(2) + "%";
+                            var npleftNum = (minNum(npsx, npdx) / npimg.width * 100).toFixed(2) + "%";
+                            var npaw = (Math.abs(npdx - npsx) / npimg.offsetWidth * 100).toFixed(2) + "%";
+                            var npah = (Math.abs(npdy - npsy) / npimg.offsetHeight * 100).toFixed(2) + "%";
+                            npcodeStr += `\n<a style="width:${npaw};height:${npah};top:${nptopNum};left:${npleftNum}" href="${nplinkStr}"></a>`;
+                            outCode();
+                        } else {
+                            npmdiv.remove();
+                        }
+                        document.onmousemove = document.onmouseup = null;
+                        eu.preventDefault();
+                    }
+                    em.preventDefault();
+                }
+            }
+
+            //右键 删除
+            npmdiv.oncontextmenu = function(er) {
+                let {
+                    dataset: {
+                        index
+                    }
+                } = this;
+                this.remove();
+                for (var i = 0; i < npaDivs.length; i++) {
+                    npaDivs[i].dataset.index = i + 1;
+                }
+                var npheada = find(npcodeStr, '<a', index);
+                var npenda = find(npcodeStr, 'a>', index);
+                var nptmpStr = npcodeStr.slice(npheada, npenda + 2);
+                npcodeStr = npcodeStr.replace(nptmpStr, "");
+
+                outCode();
+                er.stopPropagation ? er.stopPropagation() : er.cancelBubble = true;
+                er.preventDefault();
+            }
+            es.preventDefault();
+        }
+
+        // 一键复制代码
+        npout.onclick = function() {
+            if (!npcodeText.value.replace(/(^\s*)|(\s*$)/g, "")) return;
+            npcodeText.select();
+            document.execCommand("Copy");
+            alert("已经复制，可粘贴")
+        }
+
+        // 输出代码
+        function outCode() {
+            if (!npappUrl)  npappUrl = "";
+            npcodeStr = npcodeStr.replace(/\/a>\s+</g, "\/a>\r\n<").replace(/(^\s*)|(\s*$)/g, "");
+            npcodeText.value = `
+                <style>
+                    body{overflow-x: hidden;}
+                    .sp_body{ padding:0;}
+                    .box1920 img,.sp_body img {display: block; width:100%;}
+                    .box1920,.sp_body {position: relative;left: 50%; width: ${npimg.offsetWidth}px;  margin-left: -${npimg.offsetWidth/2}px; margin-bottom:0;}
+                    .sp_body img,.sp_body area,.sp_body area:focus {
+                        blr:expression(this.onFocus=this.blur());
+                        outline: none;
+                        border: none;-moz-outline-style: none;
+                    }
+                    .redio-img{width: ${npimg.offsetWidth/2}px;overflow: hidden}
+                    .redio-img video{width: 100%}
+                    .sp-list{width:${npimg.offsetWidth}px;margin: 0 auto}
+                    .box${nprandNum}{
+                        position:relative;
+                    }
+                    .href_box a{
+                        position:absolute;
+                    }
+                </style>
+                <div class="box${nprandNum} box1920">
+                    <div class="img_box sp-list">
+                        <img src="./${npfile.name}" />
+                    </div>
+                    <div class="href_box">
+                        ${npcodeStr?npcodeStr:''}
+                    </div>
+                </div>
+                <script>    
+                    var browser = {
+                        versions: function () {
+                            var u = navigator.userAgent, app = navigator.appVersion;
+                            return {//移动终端浏览器版本信息
+                                trident: u.indexOf('Trident') > -1, //IE内核
+                                presto: u.indexOf('Presto') > -1, //opera内核
+                                webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+                                gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+                                mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+                                ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+                                android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+                                iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者QQHD浏览器
+                                iPad: u.indexOf('iPad') > -1, //是否iPad
+                                webApp: u.indexOf('Safari') == -1 //是否web应该程序，没有头部与底部
+                            };
+                        }(),
+                        language: (navigator.browserLanguage || navigator.language).toLowerCase()
+                    }
+                    //document.writeln(window.location.pathname.toLowerCase());
+                    if (browser.versions.mobile && !browser.versions.iPad) {
+                        // 如果检测到是手机登录，则自动跳转到APP页面
+                        var returnUrl = "${npappUrl}";
+                        if (returnUrl) {
+                            window.location.href =  returnUrl;
+                        }
+                    }
+                <\/script>
+            `;
+            npcodeText.value = npcodeText.value.replace(/>\s+<a/g, ">\r\n<a");
+            npcodeText.value = npcodeText.value.replace(/\/a>\s+</g, "\/a>\r\n<");
+        }
+
+        //找出 a，b中的最小值
+        function minNum(a, b) {
+            return a < b ? a : b;
+        }
+
+        // 找出cha在字符串str中第num次出现的位置，num从1开始
+        function find(str, cha, num) {
+            var x = str.indexOf(cha);
+            for (var i = 0; i < num - 1; i++) {
+                x = str.indexOf(cha, x + 1);
+            }
+            return x;
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
+        html,
+        body {
+            text-align: center;
+        }
+        
+        .main {
+            position: fixed;
+            z-index: 10;
+            width: 100%;
+            text-align: center;
+            border-bottom: 1px solid red;
+            background: greenyellow;
+            height: 50px;
+            /* opacity: 0.7; */
+        }
+        
+        .img-div,
+        .code-div {
+            position: relative;
+            top: 30px;
+            margin: 0 auto;
+        }
+        
+        .code-div {
+            width: 100%;
+            display: none;
+        }
+        
+        .div-class {
+            position: absolute;
+            border: 1px solid skyblue;
+            background: #000;
+            opacity: 0.5;
+        }
+        
+        .link-div {
+            position: absolute;
+            display: none;
+        }
+        
+        .out-box {
+            width: 100%;
+            padding-top: 60px;
+            background: #f5f5f5;
+        }
+        
+        #output {
+            font-size: 20px;
+        }
+        
+        #ipt {
+            position: relative;
+            font-size: 20px;
+            vertical-align: bottom;
+            margin-top: 20px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            border: none;
+            outline: none;
+        }
+        
+        input::before {
+            content: "选择图片";
+            position: absolute;
+            background: #fff;
+            font-size: 20px;
+            border: 1px solid #aaa;
+            border-radius: 10px;
+            transform: translate(-22%, -25%);
+            height: 32px;
+            line-height: 32px;
+            width: 90px;
+            text-align: center;
+            line-height: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main">
+        <input id="ipt" type="file">
+        <!-- <button id="output">生成代码</button> -->
+        <br>
+    </div>
+    <div class="out-box">
+        <div class="img-div">
+            <img id="img" alt="">
+        </div>
+    </div>
+    <div class="code-div">
+        <textarea name="" id="code-text" cols="120" rows="30"></textarea>
+    </div>
+    <script>
+        // var fd = new FileReader();
+        var {
+            log,
+            dir
+        } = console;
+        var out = document.getElementById("output");
+        var fileName = document.getElementById("ipt");
+        var codeDiv = document.querySelector(".code-div")
+        var codeText = document.getElementById("code-text");
+        var img = document.getElementById("img");
+        var outBox = document.querySelector(".out-box");
+        var imgDiv = document.querySelector(".img-div");
+        var aDivs = imgDiv.getElementsByTagName("div");
+        var hrefBox = document.querySelector(".href_box");
+        var randNum = 0;
+        var linkNum = 0;
+        var imgW = 0;
+        var imgH = 0;
+        var codeStr = "";
+        var imgUrl = ""; //输入的img url
+        var imgBoxWidth = 0;
+
+        fileName.onchange = function(ef) {
+            var file = this.files[0];
+            var aDivs = Array.from(imgDiv.querySelectorAll("div"));
+            if (!file) return;
+            if (window.FileReader) {
+                var reader = new FileReader();
+                reader.readAsDataURL(file);
+                //监听文件读取结束后事件    
+                reader.onloadend = function(er) {
+                    // log(e.target); //e.target.result就是最后的路径地址
+                    randNum = +new Date();
+                    codeText.value = "";
+                    codeStr = "";
+                    aDivs.forEach(e => e.remove());
+                    isNull(er);
+                    codeDiv.style.display = "block";
+                };
+            }
+
+            function isNull(er) {
+                imgUrl = prompt("请输入图片的链接地址", "");
+                if (!imgUrl) return;
+                else if (imgUrl && !imgUrl.replace(/(^\s*)|(\s*$)/g, "")) {
+                    imgUrl = prompt("图片的链接地址不能为空", "");
+                    isNull();
+                    return;
+                } else {
+                    img.src = er.target.result;
+                    let tmpImg = new Image();
+                    tmpImg.src = er.target.result; //获取编码后的值,也可以用this.result获取
+                    tmpImg.onload = function() {
+                        imgW = this.width;
+                        imgH = this.height;
+                        imgDiv.style.width = imgW + "px";
+                        imgDiv.style.height = imgH + "px";
+                        outBox.style.height = imgH + 80 + "px";
+                    }
+                    tmpImg.remove();
+                }
+            }
+        }
+
+        imgDiv.onmousedown = function(es) {
+            var codeNum = +new Date();
+            if (!img.src) return;
+            var mdiv = document.createElement("div");
+            mdiv.className = "div-class";
+            var sx = es.pageX - imgDiv.offsetLeft;
+            var sy = es.pageY - imgDiv.offsetTop;
+
+            if (es.button == 0) {
+                document.onmousemove = function(em) {
+                    var dx = em.pageX - imgDiv.offsetLeft;
+                    var dy = em.pageY - imgDiv.offsetTop;
+                    dx > imgDiv.offsetWidth && (dx = imgDiv.offsetWidth);
+                    dy > imgDiv.offsetHeight && (dy = imgDiv.offsetHeight);
+                    dx < 0 && (dx = 0);
+                    dy < 0 && (dy = 0);
+                    mdiv.style.width = Math.abs(dx - sx) + "px";
+                    mdiv.style.height = Math.abs(dy - sy) + "px";
+                    mdiv.style.left = minNum(sx, dx) + "px";
+                    mdiv.style.top = minNum(sy, dy) + "px";
+                    imgDiv.appendChild(mdiv);
+
+                    document.onmouseup = function(eu) {
+                        var ux = eu.pageX;
+                        var uy = eu.pageY;
+                        var linkStr = prompt("请输入选中区域的链接地址", "")
+                        linkStr && (linkStr = linkStr.replace(/(^\s*)|(\s*$)/g, ""));
+                        if (linkStr) {
+                            for (var i = 0; i < aDivs.length; i++) {
+                                aDivs[i].dataset.index = i + 1;
+                            }
+                            var topNum = (minNum(sy, dy) / img.height * 100).toFixed(2) + "%";
+                            var leftNum = (minNum(sx, dx) / img.width * 100).toFixed(2) + "%";
+                            var aw = (Math.abs(dx - sx) / img.offsetWidth * 100).toFixed(2) + "%";
+                            var ah = (Math.abs(dy - sy) / img.offsetHeight * 100).toFixed(2) + "%";
+                            codeStr += `\n<a style="width:${aw};height:${ah};top:${topNum};left:${leftNum}" href="${linkStr}"></a>`;
+                            outCode();
+                        } else {
+                            mdiv.remove();
+                        }
+                        document.onmousemove = document.onmouseup = null;
+                        eu.preventDefault();
+                    }
+                    em.preventDefault();
+                }
+            }
+
+            //右键 删除
+            mdiv.oncontextmenu = function(er) {
+                let {
+                    dataset: {
+                        index
+                    }
+                } = this;
+                this.remove();
+                for (var i = 0; i < aDivs.length; i++) {
+                    aDivs[i].dataset.index = i + 1;
+                }
+                var heada = find(codeStr, '<a', index);
+                var enda = find(codeStr, 'a>', index);
+                var tmpStr = codeStr.slice(heada, enda + 2);
+                codeStr = codeStr.replace(tmpStr, "");
+
+                outCode();
+                er.stopPropagation ? er.stopPropagation() : er.cancelBubble = true;
+                er.preventDefault();
+            }
+            es.preventDefault();
+        }
+
+        // out.onclick = outCode;
+        // 输出代码
+        function outCode() {
+            if (!imgUrl)  return;
+            codeStr = codeStr.replace(/\/a>\s+</g, "\/a>\r\n<").replace(/(^\s*)|(\s*$)/g, "");
+
+            codeText.value = `
+                <style>
+                    .box${randNum}{
+                        width:auto;
+                        height:auto;
+                        position:relative;
+                        width:${img.offsetWidth}px;
+                    }
+                    .href_box a{
+                        position:absolute;
+                    }
+                </style>
+                <div class="box${randNum}">
+                    <div class="img_box">
+                        <img src="${imgUrl}" />
+                    </div>
+                    <div class="href_box">
+                        ${codeStr?codeStr:''}
+                    </div>
+                </div>
+            `;
+            codeText.value = codeText.value.replace(/>\s+<a/g, ">\r\n<a");
+            codeText.value = codeText.value.replace(/\/a>\s+</g, "\/a>\r\n<");
+        }
+
+        //找出 a，b中的最小值
+        function minNum(a, b) {
+            return a < b ? a : b;
+        }
+
+        // 找出cha在字符串str中第num次出现的位置，num从1开始
+        function find(str, cha, num) {
+            var x = str.indexOf(cha);
+            for (var i = 0; i < num - 1; i++) {
+                x = str.indexOf(cha, x + 1);
+            }
+            return x;
+        }
+    </script>
+</body>
+
+</html>
